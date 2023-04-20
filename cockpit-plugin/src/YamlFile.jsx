@@ -3,16 +3,35 @@ import React from 'react';
 import { TextArea, Button, Alert, Split, SplitItem, Stack, StackItem } from "@patternfly/react-core";
 const JSYaml = require("js-yaml");
 
+const Ajv = require("ajv");
+const AjvFormats = require('ajv-formats');
+const AjvErrors = require('ajv-errors');
+const ajv = new Ajv({ allErrors: true, strict: false });
+const configSpecFilePath = '/etc/microshift/config-openapi-spec.json';
+AjvFormats(ajv);
+AjvErrors(ajv);
+
 export class YamlFile extends React.Component {
     constructor(props) {
         super(props);
-        this.state = { content: "", modified: false, hasError: false, errMessage: "" };
-
+        this.state = { content: "", modified: false, hasError: false, errMessage: "", configSpec: {} };
         this.loadContent();
+        this.loadSchemaSpec();
     }
 
     updateState = (c, m = false, he = false, em = "No error") => {
         this.setState({ content: c, modified: m, hasError: he, errMessage: em });
+    };
+
+    updateSpec = (spec) => {
+        this.setState({ configSpec: spec });
+    };
+
+    loadSchemaSpec = () => {
+        const configFilePromise = cockpit.file(configSpecFilePath, { syntax: JSON }).read();
+        configFilePromise.then((specContent, tag) => {
+            this.updateSpec(specContent);
+        });
     };
 
     loadContent = () => {
@@ -42,9 +61,27 @@ export class YamlFile extends React.Component {
 
     validateContent = () => {
         try {
-            JSYaml.load(this.state.content);
-            this.updateState(this.state.content, this.state.modified);
-        } catch {
+            const data = JSYaml.load(this.state.content);
+            const valid = ajv.validate(this.state.configSpec, data);
+            if (valid) {
+                this.updateState(this.state.content, this.state.modified);
+            } else {
+                let errMessage = "";
+
+                ajv.errors.forEach((error) => {
+                    const instancePath = error.instancePath.replaceAll("/", ".");
+                    let message = `${instancePath}: ${error.message}`;
+
+                    if (error.keyword === "required") {
+                        const prefix = instancePath === "" ? "" : `${instancePath}: `;
+                        message = `${prefix} ${error.message}`;
+                    }
+                    errMessage = errMessage === "" ? message : `${errMessage} | ${message}`;
+                });
+
+                this.updateState(this.state.content, this.state.modified, true, errMessage);
+            }
+        } catch (error) {
             this.updateState(this.state.content, this.state.modified, true, "Invalid YAML format");
         }
     };
@@ -63,7 +100,9 @@ export class YamlFile extends React.Component {
 
     handleSaveClick = (event) => {
         this.validateContent();
-        // TODO: Elevate permissions and save if valid
+        if (this.state.hasError === false) {
+            cockpit.file(this.props.fileName).replace(this.state.content);
+        }
     };
 
     render() {

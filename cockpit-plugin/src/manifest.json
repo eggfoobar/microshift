@@ -2,10 +2,11 @@
     "requires": {
         "cockpit": "137"
     },
-
     "tools": {
         "index": {
-            "label": "MicroShift"
+            "label": "MicroShift",
+            "path": "index.html"
         }
-    }
+    },
+    "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-eval'; object-src 'self'"
 }
