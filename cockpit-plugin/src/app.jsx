@@ -20,6 +20,7 @@
 import React from 'react';
 import { Card, CardBody, CardTitle, Tabs, Tab } from "@patternfly/react-core";
 import { YamlFile } from './YamlFile.jsx';
+import { OSTreeCommit } from './OSTreeCommit.jsx';
 
 // import cockpit from 'cockpit';
 // const _ = cockpit.gettext;
@@ -48,6 +49,11 @@ export class Application extends React.Component {
                         <Tab eventKey={2} title="OVN">
                             <YamlFile
                                 fileName="/etc/microshift/ovn.yaml"
+                            />
+                        </Tab>
+                        <Tab eventKey={3} title="OS-Tree">
+                            <OSTreeCommit
+                                commitLocation="/var/lib/ostree-server-local"
                             />
                         </Tab>
                     </Tabs>
