@@ -20,6 +20,7 @@
 import React from 'react';
 import { Card, CardBody, CardTitle, Tabs, Tab } from "@patternfly/react-core";
 import { YamlFile } from './YamlFile.jsx';
+import { FormConfigFile } from './FormConfigFile.jsx';
 
 // import cockpit from 'cockpit';
 // const _ = cockpit.gettext;
@@ -36,8 +37,9 @@ export class Application extends React.Component {
                 <CardBody>
                     <Tabs defaultActiveKey={0} isFilled>
                         <Tab eventKey={0} title="MicroShift">
-                            <YamlFile
-                                fileName="/etc/microshift/config.yaml"
+                            <FormConfigFile
+                                specFilePath="/usr/share/microshift/spec/config-openapi-spec.json"
+                                filePath="/etc/microshift/config.yaml"
                             />
                         </Tab>
                         <Tab eventKey={1} title="LVMD">
