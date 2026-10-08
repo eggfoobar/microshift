@@ -42,7 +42,6 @@ func (c *Certificates) UnmarshalJSON(data []byte) error {
 	type plainCertificates Certificates
 	decoded := struct {
 		*plainCertificates
-
 		ServingValidity json.RawMessage `json:"servingValidity"`
 		CAValidity      json.RawMessage `json:"caValidity"`
 	}{plainCertificates: (*plainCertificates)(c)}
