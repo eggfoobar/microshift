@@ -31,7 +31,7 @@ func TestConfiguredCertificateIssuance(t *testing.T) {
 				ApiServer:    config.ApiServer{AdvertiseAddress: "10.44.0.0"},
 			}
 			dir := t.TempDir()
-			builder, err := certificateChainsSetup(cfg, dir)
+			builder, err := certificates.NewChains(cfg, dir)
 			require.NoError(t, err)
 			chains, err := builder.Complete()
 			require.NoError(t, err)
@@ -60,7 +60,7 @@ func TestConfiguredCertificateIssuance(t *testing.T) {
 			// A later startup must reuse healthy certificates despite changed policy.
 			cfg.Certificates.ServingValidity = &metav1.Duration{Duration: 336 * time.Hour}
 			cfg.Certificates.CAValidity = &metav1.Duration{Duration: 8760 * time.Hour}
-			builder, err = certificateChainsSetup(cfg, dir)
+			builder, err = certificates.NewChains(cfg, dir)
 			require.NoError(t, err)
 			loaded, err := builder.Complete()
 			require.NoError(t, err)
@@ -86,7 +86,7 @@ func TestConfiguredCertificateRenewal(t *testing.T) {
 				CAValidity:                       &metav1.Duration{Duration: 17520 * time.Hour},
 				ForceRestartOnExpirationImminent: ptr.To(false),
 			}
-			builder, err := certificateChainsSetup(cfg, dir)
+			builder, err := certificates.NewChains(cfg, dir)
 			require.NoError(t, err)
 			// A config change alone must not rewrite existing certificates.
 			chains, err := builder.Load()

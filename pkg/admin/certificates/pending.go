@@ -26,6 +26,19 @@ func (t *Transaction) readyPath() string { return filepath.Join(t.directory(), "
 // LoadPending selects the published generation without activating it. A missing
 // generation returns nil. Callers must hold the certificate operation lock.
 func (t *Transaction) LoadPending() ([]byte, error) {
+	metadata, err := t.LoadPendingMetadata()
+	if err != nil || metadata == nil {
+		return nil, err
+	}
+	if err := regularTree(t.Stage()); err != nil {
+		return nil, err
+	}
+	return metadata, nil
+}
+
+// LoadPendingMetadata reads only the published record, not the staged PKI tree.
+// It does not establish activation eligibility. The operation lock must be held.
+func (t *Transaction) LoadPendingMetadata() ([]byte, error) {
 	if err := t.validatePaths(); err != nil {
 		return nil, err
 	}
@@ -39,6 +52,9 @@ func (t *Transaction) LoadPending() ([]byte, error) {
 	if !info.Mode().IsRegular() {
 		return nil, fmt.Errorf("pending certificate record must be a regular file")
 	}
+	if info.Size() > 1024*1024 {
+		return nil, ErrInvalidPendingMetadata
+	}
 	contents, err := os.ReadFile(t.readyPath())
 	if err != nil {
 		return nil, err
@@ -51,9 +67,6 @@ func (t *Transaction) LoadPending() ([]byte, error) {
 		return nil, ErrInvalidPendingMetadata
 	}
 	t.stage = filepath.Join(t.directory(), pending.Directory)
-	if err := regularTree(t.Stage()); err != nil {
-		return nil, err
-	}
 	return pending.Metadata, nil
 }
 

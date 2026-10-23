@@ -14,6 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 
+	"github.com/openshift/microshift/pkg/admin/certificates"
 	certificatesv1alpha1 "github.com/openshift/microshift/pkg/apis/certificates/v1alpha1"
 	"github.com/openshift/microshift/pkg/config"
 	"github.com/openshift/microshift/pkg/util/cryptomaterial/certchains"
@@ -51,7 +52,7 @@ func NewCertsCommand(ioStreams genericclioptions.IOStreams) *cobra.Command {
 		IOStreams: ioStreams, now: time.Now, loadConfig: config.ActiveConfig,
 		prepare: prepareCertificateAccess,
 		plan: func(cfg *config.Config, renewCAs bool, now time.Time) ([]certchains.CertificateRenewalPlanEntry, error) {
-			builder, err := certificateChainsSetup(cfg, config.DataDir)
+			builder, err := certificates.NewChains(cfg, config.DataDir)
 			if err != nil {
 				return nil, invalidCertificateConfiguration()
 			}
@@ -165,7 +166,7 @@ func invalidCertificateConfiguration() error {
 }
 
 func loadCertificateInventory(cfg *config.Config) (certchains.CertificateInventory, error) {
-	builder, err := certificateChainsSetup(cfg, config.DataDir)
+	builder, err := certificates.NewChains(cfg, config.DataDir)
 	if err != nil {
 		return nil, err
 	}

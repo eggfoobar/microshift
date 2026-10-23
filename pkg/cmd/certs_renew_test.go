@@ -31,7 +31,7 @@ func TestCertificateRenewalApply(t *testing.T) {
 				ApiServer: config.ApiServer{AdvertiseAddress: "10.44.0.0", URL: "https://127.0.0.1:6443", Port: 6443},
 			}
 			dataDir := t.TempDir()
-			builder, err := certificateChainsSetup(cfg, dataDir)
+			builder, err := certificates.NewChains(cfg, dataDir)
 			require.NoError(t, err)
 			chains, err := builder.Complete()
 			require.NoError(t, err)

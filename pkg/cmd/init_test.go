@@ -22,6 +22,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/openshift/microshift/pkg/admin/certificates"
 	"github.com/openshift/microshift/pkg/config"
 	"github.com/openshift/microshift/pkg/util/cryptomaterial/certchains"
 	"github.com/stretchr/testify/assert"
@@ -36,13 +37,13 @@ func TestProductionCertificateInventory(t *testing.T) {
 		ApiServer: config.ApiServer{AdvertiseAddress: "10.44.0.0"},
 	}
 	dataDir := t.TempDir()
-	builder, err := certificateChainsSetup(cfg, dataDir)
+	builder, err := certificates.NewChains(cfg, dataDir)
 	require.NoError(t, err)
 	chains, err := builder.Complete()
 	require.NoError(t, err)
 	// Use a fresh builder to exercise status's disk-loading path independently
 	// of the builder that created the certificates.
-	builder, err = certificateChainsSetup(cfg, dataDir)
+	builder, err = certificates.NewChains(cfg, dataDir)
 	require.NoError(t, err)
 	inventory, err := builder.LoadInventory()
 	require.NoError(t, err)
@@ -62,22 +63,22 @@ func TestProductionCertificateInventory(t *testing.T) {
 		policy  certchains.RotationPolicy
 	}
 	expected := map[string]metadata{
-		"admin-kubeconfig-signer":                                                      {"authentication", ca, extended},
-		"admin-kubeconfig-signer/admin-kubeconfig-client":                              {"authentication", client, extended},
-		"admin-kubeconfig-signer/openshift-observability-client":                       {"observability", client, standard},
-		"aggregator-signer":                                                            {"kube-apiserver", ca, extended},
-		"aggregator-signer/aggregator-client":                                          {"kube-apiserver", client, standard},
-		"etcd-signer":                                                                  {"etcd", ca, extended},
-		"etcd-signer/apiserver-etcd-client":                                            {"kube-apiserver", client, extended},
-		"etcd-signer/etcd-peer":                                                        {"etcd", peer, extended},
-		"etcd-signer/etcd-serving":                                                     {"etcd", peer, extended},
-		"ingress-ca":                                                                   {"ingress", ca, extended},
-		"ingress-ca/router-default-serving":                                            {"ingress", serving, standard},
-		"kube-apiserver-external-signer":                                               {"kube-apiserver", ca, extended},
-		"kube-apiserver-external-signer/kube-external-serving":                         {"kube-apiserver", serving, standard},
-		"kube-apiserver-localhost-signer":                                              {"kube-apiserver", ca, extended},
-		"kube-apiserver-localhost-signer/kube-apiserver-localhost-serving":             {"kube-apiserver", serving, standard},
-		"kube-apiserver-service-network-signer":                                        {"kube-apiserver", ca, extended},
+		"admin-kubeconfig-signer":                                          {"authentication", ca, extended},
+		"admin-kubeconfig-signer/admin-kubeconfig-client":                  {"authentication", client, extended},
+		"admin-kubeconfig-signer/openshift-observability-client":           {"observability", client, standard},
+		"aggregator-signer":                                                {"kube-apiserver", ca, extended},
+		"aggregator-signer/aggregator-client":                              {"kube-apiserver", client, standard},
+		"etcd-signer":                                                      {"etcd", ca, extended},
+		"etcd-signer/apiserver-etcd-client":                                {"kube-apiserver", client, extended},
+		"etcd-signer/etcd-peer":                                            {"etcd", peer, extended},
+		"etcd-signer/etcd-serving":                                         {"etcd", peer, extended},
+		"ingress-ca":                                                       {"ingress", ca, extended},
+		"ingress-ca/router-default-serving":                                {"ingress", serving, standard},
+		"kube-apiserver-external-signer":                                   {"kube-apiserver", ca, extended},
+		"kube-apiserver-external-signer/kube-external-serving":             {"kube-apiserver", serving, standard},
+		"kube-apiserver-localhost-signer":                                  {"kube-apiserver", ca, extended},
+		"kube-apiserver-localhost-signer/kube-apiserver-localhost-serving": {"kube-apiserver", serving, standard},
+		"kube-apiserver-service-network-signer":                            {"kube-apiserver", ca, extended},
 		"kube-apiserver-service-network-signer/kube-apiserver-service-network-serving": {"kube-apiserver", serving, standard},
 		"kube-apiserver-to-kubelet-signer":                                             {"kube-apiserver", ca, extended},
 		"kube-apiserver-to-kubelet-signer/kube-apiserver-to-kubelet-client":            {"kube-apiserver", client, standard},
@@ -87,10 +88,10 @@ func TestProductionCertificateInventory(t *testing.T) {
 		"kube-control-plane-signer/kube-controller-manager":                            {"kube-controller-manager", client, standard},
 		"kube-control-plane-signer/kube-scheduler":                                     {"kube-scheduler", client, standard},
 		"kube-control-plane-signer/route-controller-manager":                           {"route-controller-manager", client, standard},
-		"kubelet-signer":                                                               {"kubelet", ca, extended},
-		"kubelet-signer/kube-csr-signer":                                               {"kubelet", ca, extended},
-		"kubelet-signer/kube-csr-signer/kubelet-client":                                {"kubelet", client, standard},
-		"kubelet-signer/kube-csr-signer/kubelet-server":                                {"kubelet", serving, standard},
+		"kubelet-signer":                                {"kubelet", ca, extended},
+		"kubelet-signer/kube-csr-signer":                {"kubelet", ca, extended},
+		"kubelet-signer/kube-csr-signer/kubelet-client": {"kubelet", client, standard},
+		"kubelet-signer/kube-csr-signer/kubelet-server": {"kubelet", serving, standard},
 		"service-ca": {"service-ca", ca, extended},
 		"service-ca/route-controller-manager-serving": {"route-controller-manager", serving, standard},
 	}
