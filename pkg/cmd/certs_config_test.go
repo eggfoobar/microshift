@@ -29,9 +29,13 @@ func TestConfiguredCertificateIssuance(t *testing.T) {
 				ApiServer:    config.ApiServer{AdvertiseAddress: "10.44.0.0"},
 			}
 			dir := t.TempDir()
+<<<<<<< HEAD
 			now := time.Now()
 			nextMidnight := time.Date(now.Year(), now.Month(), now.Day()+1, 0, 0, 0, 0, now.Location())
 			builder, err := certificateChainsSetup(cfg, dir)
+=======
+			builder, err := certificates.NewChains(cfg, dir)
+>>>>>>> d042d89d7c (OCPSTRAT-2899: expose local certificate health metrics)
 			require.NoError(t, err)
 			chains, err := builder.Complete()
 			require.NoError(t, err)
@@ -60,7 +64,7 @@ func TestConfiguredCertificateIssuance(t *testing.T) {
 			// A later startup must reuse healthy certificates despite changed policy.
 			cfg.Certificates.ServingValidity = &metav1.Duration{Duration: 336 * time.Hour}
 			cfg.Certificates.CAValidity = &metav1.Duration{Duration: 8760 * time.Hour}
-			builder, err = certificateChainsSetup(cfg, dir)
+			builder, err = certificates.NewChains(cfg, dir)
 			require.NoError(t, err)
 			loaded, err := builder.Complete()
 			require.NoError(t, err)
@@ -76,6 +80,7 @@ func TestConfiguredCertificateIssuance(t *testing.T) {
 	}
 }
 
+<<<<<<< HEAD
 func TestCertificateRotationRestartPolicy(t *testing.T) {
 	for _, forceRestart := range []bool{true, false} {
 		t.Run(map[bool]string{true: "enabled", false: "disabled"}[forceRestart], func(t *testing.T) {
@@ -86,6 +91,63 @@ func TestCertificateRotationRestartPolicy(t *testing.T) {
 				require.ErrorIs(t, ctx.Err(), context.Canceled)
 			} else {
 				require.NoError(t, ctx.Err(), "critical expiry must not stop a warn-only service")
+=======
+func TestConfiguredCertificateRenewal(t *testing.T) {
+	for _, renewCAs := range []bool{false, true} {
+		t.Run(fmt.Sprintf("renewCAs=%t", renewCAs), func(t *testing.T) {
+			cfg, dir := pendingRenewalFixture(t)
+			before := activeCertificateFileDigests(t, dir)
+			cfg.Certificates = config.Certificates{
+				ServingValidity:                  &metav1.Duration{Duration: 1008 * time.Hour},
+				CAValidity:                       &metav1.Duration{Duration: 17520 * time.Hour},
+				ForceRestartOnExpirationImminent: ptr.To(false),
+			}
+			builder, err := certificates.NewChains(cfg, dir)
+			require.NoError(t, err)
+			// A config change alone must not rewrite existing certificates.
+			chains, err := builder.Load()
+			require.NoError(t, err)
+			require.Equal(t, before, activeCertificateFileDigests(t, dir))
+			paths, err := certsToRegenerate(chains.Inventory(), time.Now())
+			require.NoError(t, err)
+			require.Empty(t, paths)
+			plan, err := builder.PlanRenewal(renewCAs, time.Now())
+			require.NoError(t, err)
+			renewed, err := applyCertificateRenewal(cfg, dir, renewCAs)
+			require.NoError(t, err)
+			require.Equal(t, before, activeCertificateFileDigests(t, dir), "online preparation must preserve active PKI")
+			for _, planned := range plan {
+				for _, entry := range renewed {
+					if strings.Join(planned.Path, "/") == strings.Join(entry.Path, "/") {
+						require.WithinDuration(t, planned.NewNotAfter, entry.Certificate.NotAfter, 5*time.Second)
+					}
+				}
+			}
+			activated, err := activateCertificateRenewal(cfg, &certificates.Transaction{DataDir: dir}, func() error { return nil }, time.Now())
+			require.NoError(t, err)
+			require.True(t, activated)
+			inventory, err := builder.LoadInventory()
+			require.NoError(t, err)
+			parents := map[string]time.Time{}
+			for _, entry := range inventory {
+				cert := entry.Certificate
+				parents[strings.Join(entry.Path, "/")] = cert.NotAfter
+				if len(entry.Path) > 1 {
+					require.False(t, cert.NotAfter.After(parents[strings.Join(entry.Path[:len(entry.Path)-1], "/")]))
+				}
+				var expected time.Duration
+				if entry.Role == certchains.CertificateRoleServing {
+					expected = cfg.Certificates.ServingDuration()
+				} else if renewCAs && entry.Role == certchains.CertificateRoleCA {
+					expected = cfg.Certificates.CADuration()
+				}
+				if expected > 0 {
+					require.InDelta(t, expected.Seconds(), cert.NotAfter.Sub(cert.NotBefore).Seconds(), (24*time.Hour + time.Minute).Seconds())
+				}
+				state, err := entry.StatusAt(time.Now())
+				require.NoError(t, err)
+				require.Equal(t, certchains.CertificateStatusHealthy, state)
+>>>>>>> d042d89d7c (OCPSTRAT-2899: expose local certificate health metrics)
 			}
 		})
 	}
